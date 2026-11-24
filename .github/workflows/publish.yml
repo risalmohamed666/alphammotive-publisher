@@ -1,0 +1,49 @@
+name: Publish Instagram posts
+
+on:
+  schedule:
+    # UAE is UTC+4. Runs at 17:05, 21:05 and 04:35 UAE time.
+    - cron: "5 13,17 * * *"
+    - cron: "35 0 * * *"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "run = publish what is due, dry = show only, check = test the token"
+        required: true
+        default: dry
+        type: choice
+        options: [dry, check, run]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: instagram-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Publish due posts
+        env:
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'dry' && '1' || '' }}
+          CHECK: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'check' && '1' || '' }}
+        run: python publish.py
+
+      - name: Record what was posted
+        run: |
+          if [ -n "$(git status --porcelain posted.json)" ]; then
+            git config user.name "alphammotive-bot"
+            git config user.email "actions@users.noreply.github.com"
+            git add posted.json
+            git commit -m "Record published posts"
+            git push
+          fi
