@@ -3,10 +3,12 @@ alphammotive auto-publisher.
 
 Reads schedule.csv, publishes every approved post whose time has come
 (and is not older than CATCHUP_HOURS) to Instagram via the official
-Instagram API with Instagram Login, then records it in posted.json.
+Instagram Graph API (system-user token from the Alphammotive business
+portfolio), then records it in posted.json.
 
 Env vars:
-  IG_ACCESS_TOKEN   long-lived Instagram user token (GitHub secret)
+  IG_ACCESS_TOKEN   system-user access token (GitHub secret)
+  IG_USER_ID        Instagram account ID (default: @alphammotive)
   GITHUB_REPOSITORY owner/repo (set automatically by GitHub Actions)
   GITHUB_REF_NAME   branch (set automatically)
   DRY_RUN=1         show what would be posted, call nothing
@@ -17,7 +19,8 @@ Env vars:
 import csv, json, os, sys, time, urllib.error, urllib.parse, urllib.request
 from datetime import datetime, timedelta, timezone
 
-API = "https://graph.instagram.com/v21.0"
+API = "https://graph.facebook.com/v21.0"
+IG_USER_ID = os.environ.get("IG_USER_ID", "17841453286180522")  # @alphammotive
 HERE = os.path.dirname(os.path.abspath(__file__))
 SCHEDULE = os.path.join(HERE, "schedule.csv")
 POSTED = os.path.join(HERE, "posted.json")
@@ -86,8 +89,9 @@ def publish(ig_id, row):
 
 def main():
     if os.environ.get("CHECK") == "1":
-        me = call("GET", "me", {"fields": "user_id,username,account_type"})
-        print(f"Token OK for @{me.get('username')} ({me.get('account_type')}), id {me.get('user_id')}")
+        me = call("GET", IG_USER_ID, {"fields": "username,media_count"})
+        lim = call("GET", f"{IG_USER_ID}/content_publishing_limit", {"fields": "quota_usage,config"})
+        print(f"Token OK for @{me.get('username')} ({me.get('media_count')} posts). Publishing quota: {lim}")
         return
 
     posted = load_posted()
@@ -109,7 +113,7 @@ def main():
         print(f"Nothing due at {now.isoformat(timespec='minutes')}.")
         return
 
-    ig_id = None if DRY else call("GET", "me", {"fields": "user_id"})["user_id"]
+    ig_id = IG_USER_ID
     for row in due[:MAX_PER_RUN]:
         if DRY:
             print(f"DRY RUN: would publish post {row['post_no']} ({row['file']}) from {image_url(row['file'])}")
