@@ -3,7 +3,7 @@
 Posts go out automatically at **5:00 pm, 9:00 pm and 4:30 am UAE time**, from a free GitHub
 repository, using Instagram's official publishing API. Your computer does not need to be on.
 
-One-time setup: about 30–45 minutes. You do every step that involves a password or a token yourself.
+One-time setup: about 15 minutes. You do every step that involves a password or a token yourself.
 
 ---
 
@@ -20,18 +20,15 @@ One-time setup: about 30–45 minutes. You do every step that involves a passwor
    `.github/workflows/publish.yml` (the slashes create the folders). Open `publish_workflow.yml`
    from this folder in Notepad, copy everything, paste it in, and click **Commit changes**.
 
-## Step 2 — Create the Meta app and get your token (20–30 min)
+## Step 2 — Meta token (done with Claude on 24 Nov)
 
-Your Instagram account must stay a **Professional (Creator)** account. It already is.
+Already set up: business portfolio **Alphammotive** → @alphammotive added → system user
+**alphammotive publisher** with Content + Insights access → token for app **Content Manager**,
+permissions `instagram_basic`, `instagram_content_publish`, `instagram_manage_insights`,
+expiry **Never**.
 
-1. Go to https://developers.facebook.com → log in with Facebook → **My Apps → Create app**.
-2. Use case: **Manage messaging & content on Instagram**. App type: Business. Name: `alphammotive publisher`.
-3. In the app dashboard open **Instagram → API setup with Instagram login**.
-4. Under **Generate access tokens**, click **Add account** and log in as **@alphammotive**.
-   Allow the permissions it asks for (basic profile + content publishing).
-5. Click **Generate token** next to @alphammotive and copy it.
-   This is a long-lived token, valid for **60 days**.
-   Treat it like a password: never paste it into chat, email or a file.
+If you ever need a new token: business.facebook.com → Settings → System users →
+alphammotive publisher → **Generate token** (same choices), then update the GitHub secret.
 
 ## Step 3 — Give the token to GitHub (2 min)
 
@@ -63,14 +60,14 @@ If both look right, you're done. The timer takes over from the next slot.
 - If GitHub runs late (it sometimes does by up to an hour), the post still goes out. If a post is more
   than 3 hours late, it's skipped rather than dumped in with the next one, and the run log says so.
 
-## Every 50 days — renew the token
+## Token renewal
 
-The token expires after 60 days. Set a phone reminder for 50 days after setup, then repeat
-**Step 2.5** (Generate token) and **Step 3** (update the secret, same name). Takes 3 minutes.
+Not needed: the system-user token never expires. If it's ever leaked, click **Revoke tokens** on
+the system user, generate a new one and update the GitHub secret.
 
 ## If something fails
 
 Open **Actions**, click the red run, and read the last lines. Common causes:
 - `IG_ACCESS_TOKEN is not set` → Step 3 was missed.
-- `error 190` → token expired or revoked: renew it.
+- `error 190` → token revoked or wrong: generate a new one (Step 2) and update the secret.
 - `Container … failed` → usually the image link: check the repo is Public.
